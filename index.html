@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صالون الحلاقة | طابور الحجوزات المباشر</title>
+    <style>
+        :root {
+            --primary-color: #1a1a1a;
+            --accent-color: #d4af37;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-wrapper {
+            min-height: 100vh;
+            padding: 20px 15px;
+        }
+
+        .container {
+            max-width: 500px;
+            background: #ffffff;
+            padding: 30px 20px;
+            margin: 20px auto;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            text-align: center;
+            border-top: 5px solid var(--accent-color);
+        }
+
+        .logo-area {
+            font-size: 50px;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+
+        h2 {
+            margin: 10px 0 5px 0;
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-align: right;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-submit:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        /* تصميم جدول الطابور */
+        .queue-section {
+            margin-top: 35px;
+            text-align: right;
+        }
+
+        .queue-section h3 {
+            color: var(--primary-color);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .live-badge {
+            background-color: #c62828;
+            color: white;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 50px;
+            animation: blink 1.5s infinite;
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .queue-table th, .queue-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 15px;
+        }
+
+        .queue-table th {
+            background-color: #f1f1f1;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .queue-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .my-row {
+            background-color: #fffdf3 !important;
+            font-weight: bold;
+            border: 1px dashed var(--accent-color);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="container">
+        <div class="logo-area">💈</div>
+        <h2>صالون الحلاقة الفخم</h2>
+        <p class="subtitle">سجل اسمك وتابع دورك مباشرة من شاشتك</p>
+        
+        <div class="form-group">
+            <label for="customerName">الاسم الكريم:</label>
+            <input type="text" id="customerName" placeholder="أدخل اسمك هنا لحجز دور..." required>
+        </div>
+        
+        <button class="btn-submit" id="submitBtn" onclick="bookQueue()">احصل على دورك الآن 🎟️</button>
+
+        <div class="queue-section">
+            <h3>
+                <span>📋 طابور الحجوزات اليومي</span>
+                <span class="live-badge">مباشر الآن 🟢</span>
+            </h3>
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th>الدور 🎟️</th>
+                        <th>الاسم 👤</th>
+                        <th>الموعد التقريبي ⏰</th>
+                    </tr>
+                </thead>
+                <tbody id="queueTableBody">
+                    <tr>
+                        <td colspan="3" class="no-data">جاري تحميل الطابور الحالي...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // إعدادات النظام الثابتة
+    const startTimeStr = "09:00"; 
+    const serviceDuration = 20;   
+    
+    // ⚠️ ضَع هنا رابط الـ Realtime Database الخاص بك من جوجل فايربيز مع التأكد من وجود "/" في الآخر
+    const databaseURL = "https://barber-salon-2ffbb-default-rtdb.firebaseio.com/";
+    // دالة لحساب الوقت بناءً على رقم الدور
+    function calculateTime(queueNum) {
+        let timeParts = startTimeStr.split(":");
+        let totalMinutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+        let customerMinutes = totalMinutes + ((queueNum - 1) * serviceDuration);
+        
+        let hours = Math.floor(customerMinutes / 60);
+        let minutes = customerMinutes % 60;
+        
+        let formattedHours = hours.toString().padStart(2, '0');
+        let formattedMinutes = minutes.toString().padStart(2, '0');
+        return `${formattedHours}:${formattedMinutes}`;
+    }
+
+    // دالة لجلب الطابور وعرضه في الجدول تلقائياً
+    async function loadLiveQueue() {
+        try {
+            let response = await fetch(`${databaseURL}queue.json`);
+            let data = await response.json();
+            
+            let tableBody = document.getElementById('queueTableBody');
+            tableBody.innerHTML = ""; // مسح الجدول القديم
+
+            let today = new Date().toISOString().slice(0, 10);
+
+            // لو مفيش بيانات أو اليوم اتغير، اعرض جدول فاضي
+            if (!data || data.lastSavedDate !== today || !data.customers) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="no-data">الطابور فارغ حتى الآن. كن أول المسجلين! ✨</td></tr>`;
+                return;
+            }
+
+            // عرض قائمة الزبائن المرتبة في الجدول
+            let customersList = data.customers;
+            customersList.forEach((cust) => {
+                let row = document.createElement('tr');
+                
+                // تمييز اسم العميل الحالي بلون مختلف لو هو اللي فاتح الشاشة
+                let savedMyName = localStorage.getItem('myBookedName');
+                if(savedMyName && cust.name === savedMyName) {
+                    row.className = "my-row";
+                }
+
+                row.innerHTML = `
+                    <td><strong>${cust.queueNum}</strong></td>
+                    <td>${cust.name}</td>
+                    <td style="color: #c62828;">${cust.time}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+        } catch (error) {
+            console.error("خطأ في جلب البيانات:", error);
+        }
+    }
+
+    // دالة حجز دور جديد وإضافته للقائمة أونلاين
+    async function bookQueue() {
+        const nameInput = document.getElementById('customerName').value.trim();
+        const submitBtn = document.getElementById('submitBtn');
+        
+        if (nameInput === "") {
+            alert("من فضلك اكتب اسمك أولاً لتتمكن من الحجز!");
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "جاري حجز دورك...";
+
+        try {
+            let today = new Date().toISOString().slice(0, 10);
+
+            // جلب البيانات الحالية من السيرفر
+            let response = await fetch(`${databaseURL}queue.json`);
+            let data = await response.json();
+
+            let currentQueue = 0;
+            let lastSavedDate = "";
+            let customersList = [];
+
+            if (data) {
+                currentQueue = data.currentQueue || 0;
+                lastSavedDate = data.lastSavedDate || "";
+                customersList = data.customers || [];
+            }
+
+            // آلية التصفير اليومي (إذا تغير التاريخ، نمسح مصفوفة الأسماء والعداد)
+            if (lastSavedDate !== today) {
+                currentQueue = 0;
+                customersList = [];
+                lastSavedDate = today;
+            }
+
+            // زيادة العداد وحساب التوقيت للعميل الجديد
+            currentQueue += 1;
+            let finalTime = calculateTime(currentQueue);
+
+            // إضافة العميل الجديد إلى القائمة الحالية
+            customersList.push({
+                name: nameInput,
+                queueNum: currentQueue,
+                time: finalTime
+            });
+
+            // حفظ البيانات الشاملة للقائمة على السيرفر
+            await fetch(`${databaseURL}queue.json`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    currentQueue: currentQueue,
+                    lastSavedDate: today,
+                    customers: customersList
+                })
+            });
+
+            // حفظ الاسم محلياً لتمييزه في الجدول باللون الذهبي
+            localStorage.setItem('myBookedName', nameInput);
+            
+            document.getElementById('customerName').value = ""; // تفريغ خانة النص
+            submitBtn.disabled = false;
+            submitBtn.innerText = "احصل على دورك الآن 🎟️";
+
+            // تحديث الجدول فوراً بعد الحجز الناجح
+            alert(`تم حجز دورك بنجاح! 🎉\nرقمك هو: ${currentQueue}\nموعدك: ${finalTime}`);
+            loadLiveQueue();
+
+        } catch (error) {
+            console.error(error);
+            alert("حدث خطأ في الاتصال بالسيرفر.");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "احصل على دورك الآن 🎟️";
+        }
+    }
+
+    // تشغيل جلب البيانات تلقائياً بمجرد فتح الصفحة
+    loadLiveQueue();
+
+    // تحديث تلقائي للجدول كل 15 ثانية لمتابعة الحجوزات الجديدة من الأجهزة الأخرى
+    setInterval(loadLiveQueue, 15000);
+</script>
+
+</body>
+</html>
