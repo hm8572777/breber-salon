@@ -223,20 +223,73 @@
     const startTimeStr = "09:00"; 
     const serviceDuration = 20;   
     
-    // ⚠️ ضَع هنا رابط الـ Realtime Database الخاص بك من جوجل فايربيز مع التأكد من وجود "/" في الآخر
+    // رابط الـ Realtime Database الخاص بك من جوجل فايربيز
     const databaseURL = "https://barber-salon-2ffbb-default-rtdb.firebaseio.com/";
-    // دالة لحساب الوقت بناءً على رقم الدور
-    function calculateTime(queueNum) {
-        let timeParts = startTimeStr.split(":");
-        let totalMinutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
-        let customerMinutes = totalMinutes + ((queueNum - 1) * serviceDuration);
+
+    // دالة مساعدة لتحويل الوقت النصي (HH:MM) إلى دقائق
+    function timeToMinutes(timeStr) {
+        let parts = timeStr.split(":");
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+
+    // دالة مساعدة لتحويل الدقائق الكلية إلى نص (HH:MM)
+    function minutesToTime(totalMinutes) {
+        let hours = Math.floor(totalMinutes / 60) % 24;
+        let minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    // دالة لتنظيف الحجوزات المنتهية تلقائياً بعد مرور 5 دقائق
+    async function autoCleanExpiredQueue(data, today) {
+        if (!data || !data.customers || data.customers.length === 0) return data;
+
+        let now = new Date();
+        let currentMinutes = now.getHours() * 60 + now.getMinutes();
         
-        let hours = Math.floor(customerMinutes / 60);
-        let minutes = customerMinutes % 60;
+        // تصفية القائمة للإبقاء فقط على من لم يمر على موعده 5 دقائق
+        let activeCustomers = data.customers.filter(cust => {
+            let custMinutes = timeToMinutes(cust.time);
+            return (currentMinutes - custMinutes) < 5; 
+        });
+
+        // تحديث السيرفر إذا تم حذف أي حجوزات منتهية الصلاحية
+        if (activeCustomers.length !== data.customers.length) {
+            data.customers = activeCustomers;
+            try {
+                await fetch(`${databaseURL}queue.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+            } catch (error) {
+                console.error("خطأ أثناء التنظيف التلقائي:", error);
+            }
+        }
+        return data;
+    }
+
+    // دالة لحساب الموعد المتاح التالي بذكاء وبناءً على الوقت الحالي للموبايل
+    function calculateNextAvailableTime(customersList) {
+        let now = new Date();
+        let currentMinutes = now.getHours() * 60 + now.getMinutes();
+        let startMinutes = timeToMinutes(startTimeStr);
+
+        // وقت البداية هو بداية فتح الصالون أو الوقت الحالي (أيهما أكبر)
+        let baseMinutes = Math.max(startMinutes, currentMinutes);
+
+        if (customersList && customersList.length > 0) {
+            // توقيت آخر حجز مسجل في الجدول
+            let lastCustomer = customersList[customersList.length - 1];
+            let lastCustMinutes = timeToMinutes(lastCustomer.time);
+            let nextSlotMinutes = lastCustMinutes + serviceDuration;
+
+            // إذا كان موعد الحجز التالي المترتب خلف الزبائن أكبر من الوقت الحالي، نعتمد عليه
+            if (nextSlotMinutes > currentMinutes) {
+                return minutesToTime(nextSlotMinutes);
+            }
+        }
         
-        let formattedHours = hours.toString().padStart(2, '0');
-        let formattedMinutes = minutes.toString().padStart(2, '0');
-        return `${formattedHours}:${formattedMinutes}`;
+        // لو الصالون فاضي أو المواعيد السابقة انتهت كلها، يبدأ الحجز فوراً من التوقيت الحالي
+        return minutesToTime(baseMinutes);
     }
 
     // دالة لجلب الطابور وعرضه في الجدول تلقائياً
@@ -246,22 +299,29 @@
             let data = await response.json();
             
             let tableBody = document.getElementById('queueTableBody');
-            tableBody.innerHTML = ""; // مسح الجدول القديم
+            tableBody.innerHTML = ""; 
 
             let today = new Date().toISOString().slice(0, 10);
 
-            // لو مفيش بيانات أو اليوم اتغير، اعرض جدول فاضي
-            if (!data || data.lastSavedDate !== today || !data.customers) {
+            // تصفير الجدول تلقائياً في اليوم الجديد
+            if (data && data.lastSavedDate !== today) {
+                data = { currentQueue: 0, lastSavedDate: today, customers: [] };
+                await fetch(`${databaseURL}queue.json`, { method: 'PUT', body: JSON.stringify(data) });
+            }
+
+            // تفعيل ميزة الحذف التلقائي للمواعيد القديمة (5 دقائق)
+            data = await autoCleanExpiredQueue(data, today);
+
+            if (!data || !data.customers || data.customers.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="3" class="no-data">الطابور فارغ حتى الآن. كن أول المسجلين! ✨</td></tr>`;
                 return;
             }
 
-            // عرض قائمة الزبائن المرتبة في الجدول
+            // عرض قائمة الزبائن في الجدول
             let customersList = data.customers;
             customersList.forEach((cust) => {
                 let row = document.createElement('tr');
                 
-                // تمييز اسم العميل الحالي بلون مختلف لو هو اللي فاتح الشاشة
                 let savedMyName = localStorage.getItem('myBookedName');
                 if(savedMyName && cust.name === savedMyName) {
                     row.className = "my-row";
@@ -280,7 +340,7 @@
         }
     }
 
-    // دالة حجز دور جديد وإضافته للقائمة أونلاين
+    // دالة حجز دور جديد
     async function bookQueue() {
         const nameInput = document.getElementById('customerName').value.trim();
         const submitBtn = document.getElementById('submitBtn');
@@ -296,7 +356,6 @@
         try {
             let today = new Date().toISOString().slice(0, 10);
 
-            // جلب البيانات الحالية من السيرفر
             let response = await fetch(`${databaseURL}queue.json`);
             let data = await response.json();
 
@@ -310,25 +369,22 @@
                 customersList = data.customers || [];
             }
 
-            // آلية التصفير اليومي (إذا تغير التاريخ، نمسح مصفوفة الأسماء والعداد)
             if (lastSavedDate !== today) {
                 currentQueue = 0;
                 customersList = [];
                 lastSavedDate = today;
             }
 
-            // زيادة العداد وحساب التوقيت للعميل الجديد
+            // حساب التوقيت المتاح التالي ذكياً
+            let finalTime = calculateNextAvailableTime(customersList);
             currentQueue += 1;
-            let finalTime = calculateTime(currentQueue);
 
-            // إضافة العميل الجديد إلى القائمة الحالية
             customersList.push({
                 name: nameInput,
                 queueNum: currentQueue,
                 time: finalTime
             });
 
-            // حفظ البيانات الشاملة للقائمة على السيرفر
             await fetch(`${databaseURL}queue.json`, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -338,15 +394,13 @@
                 })
             });
 
-            // حفظ الاسم محلياً لتمييزه في الجدول باللون الذهبي
             localStorage.setItem('myBookedName', nameInput);
             
-            document.getElementById('customerName').value = ""; // تفريغ خانة النص
+            document.getElementById('customerName').value = ""; 
             submitBtn.disabled = false;
             submitBtn.innerText = "احصل على دورك الآن 🎟️";
 
-            // تحديث الجدول فوراً بعد الحجز الناجح
-            alert(`تم حجز دورك بنجاح! 🎉\nرقمك هو: ${currentQueue}\nموعدك: ${finalTime}`);
+            alert(`تم حجز دورك بنجاح! 🎉\nرقمك هو: ${currentQueue}\nموعدك التقريبي: ${finalTime}`);
             loadLiveQueue();
 
         } catch (error) {
@@ -357,11 +411,11 @@
         }
     }
 
-    // تشغيل جلب البيانات تلقائياً بمجرد فتح الصفحة
+    // تشغيل جلب البيانات فور فتح الصفحة
     loadLiveQueue();
 
-    // تحديث تلقائي للجدول كل 15 ثانية لمتابعة الحجوزات الجديدة من الأجهزة الأخرى
-    setInterval(loadLiveQueue, 15000);
+    // تحديث الجدول وتنظيف المواعيد المنتهية تلقائياً كل 10 ثوانٍ
+    setInterval(loadLiveQueue, 10000);
 </script>
 
 </body>
